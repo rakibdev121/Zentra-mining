@@ -105,7 +105,20 @@ startButton?.addEventListener("click", async () => {
         });
 
         console.log("Mining started:", data);
-        await loadMiningStatus();
+        await async function registerUser() {
+    try {
+        const data = await api("/api/users/register", {
+            method: "POST"
+        });
+        console.log("User registered:", data);
+        return true;
+    } catch (error) {
+        console.error("Register error:", error);
+        return false;
+    }
+}
+
+loadMiningStatus();
 
     } catch (error) {
         console.error(error);
@@ -135,6 +148,6 @@ claimButton?.addEventListener("click", async () => {
     }
 });
 
-loadMiningStatus();
+registerUser().then(() => loadMiningStatus());
 
 setInterval(loadMiningStatus, 30000);
