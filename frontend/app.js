@@ -2,6 +2,8 @@ const API_BASE_URL = "https://zentra-mining.onrender.com";
 
 const tg = window.Telegram?.WebApp;
 const initData = tg?.initData || "";
+const telegramUserId = tg?.initDataUnsafe?.user?.id || "UNKNOWN";
+console.log("TELEGRAM USER ID:", telegramUserId);
 
 if (tg) {
     tg.ready();
