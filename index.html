@@ -4,108 +4,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zentra</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <div class="app">
+<div class="app">
 
-        <header class="topbar">
-            <div class="brand">
-                <div class="logo">Z</div>
+    <header class="topbar">
+        <div class="brand">
+            <div class="logo">Z</div>
+            <div>
+                <h1>ZENTRA</h1>
+                <span>Mining Network</span>
+            </div>
+        </div>
+
+        <button class="profile-btn" id="profile-btn">👤</button>
+    </header>
+
+    <main>
+
+        <div class="status">
+            <span class="dot"></span>
+            <span id="mining-status">LOADING...</span>
+        </div>
+
+        <section class="balance-card">
+            <p>Your Balance</p>
+
+            <h2>
+                <span id="balance">0</span>
+                <span>ZNT</span>
+            </h2>
+
+            <div class="rate">
+                ⚡ 1 ZNT / MINUTE
+            </div>
+        </section>
+
+        <section class="mining-card">
+
+            <div class="mining-ring">
                 <div>
-                    <h1>ZENTRA</h1>
-                    <span>Mining Network</span>
+                    <strong id="mining-timer">--:--:--</strong>
+                    <small>NEXT CLAIM</small>
                 </div>
             </div>
 
-            <button class="profile-btn">👤</button>
-        </header>
+            <button
+                class="start-mining-btn"
+                id="start-mining-btn">
+                START MINING
+            </button>
 
+            <button
+                class="claim-btn"
+                id="claim-btn"
+                disabled>
+                CLAIM NOT READY
+            </button>
 
-        <main>
+        </section>
 
-            <div class="status">
-                <span class="dot"></span>
-                MINING ACTIVE
+        <section class="quick-cards">
+
+            <div class="quick-card" id="referral-card">
+                <span>🎁</span>
+                <p>Referrals</p>
+                <strong id="referral-count">0</strong>
             </div>
 
+            <div class="quick-card" id="wallet-card">
+                <span>👛</span>
+                <p>Wallet</p>
+                <strong id="wallet-status">Not Connected</strong>
+            </div>
 
-            <section class="balance-card">
+        </section>
 
-                <p>Your Balance</p>
+    </main>
 
-                <h2>1,440 <span>ZNT</span></h2>
+    <nav class="bottom-nav">
 
-                <div class="rate">
-                    ⚡ 1 ZNT / MINUTE
-                </div>
+        <button class="active" id="home-btn">
+            <span>⌂</span>
+            Home
+        </button>
 
-            </section>
+        <button id="mining-btn">
+            <span>⛏</span>
+            Mining
+        </button>
 
+        <button id="referral-btn">
+            <span>♧</span>
+            Referral
+        </button>
 
-            <section class="mining-card">
+        <button id="wallet-btn">
+            <span>◈</span>
+            Wallet
+        </button>
 
-                <div class="mining-ring">
-                    <div>
-                        <strong>18:42:16</strong>
-                        <small>NEXT CLAIM</small>
-                    </div>
-                </div>
+    </nav>
 
-                <button class="claim-btn">
-                    CLAIM 1,440 ZNT
-                </button>
+</div>
 
-            </section>
+<script src="app.js"></script>
 
-
-            <section class="quick-cards">
-
-                <div class="quick-card">
-                    <span>🎁</span>
-                    <p>Referrals</p>
-                    <strong>12</strong>
-                </div>
-
-                <div class="quick-card">
-                    <span>👛</span>
-                    <p>Wallet</p>
-                    <strong>Connected</strong>
-                </div>
-
-            </section>
-
-        </main>
-
-
-        <nav class="bottom-nav">
-
-            <button class="active">
-                <span>⌂</span>
-                Home
-            </button>
-
-            <button>
-                <span>⛏</span>
-                Mining
-            </button>
-
-            <button>
-                <span>♧</span>
-                Referral
-            </button>
-
-            <button>
-                <span>◈</span>
-                Wallet
-            </button>
-
-        </nav>
-
-    </div>
-
-    <script src="app.js"></script>
 </body>
 </html>
