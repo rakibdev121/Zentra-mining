@@ -8,8 +8,11 @@ if (tg) {
     tg.expand();
 }
 
-const timer = document.querySelector(".mining-ring strong");
-const claimButton = document.querySelector(".claim-btn");
+const timer = document.querySelector("#mining-timer");
+const balance = document.querySelector("#balance");
+const miningStatus = document.querySelector("#mining-status");
+const startButton = document.querySelector("#start-mining-btn");
+const claimButton = document.querySelector("#claim-btn");
 
 function formatTime(seconds) {
     seconds = Math.max(0, Math.floor(seconds));
@@ -19,20 +22,18 @@ function formatTime(seconds) {
     const secs = seconds % 60;
 
     return [hours, minutes, secs]
-        .map(value => String(value).padStart(2, "0"))
+        .map(v => String(v).padStart(2, "0"))
         .join(":");
 }
 
 async function api(path, options = {}) {
-    const headers = {
-        "Content-Type": "application/json",
-        "X-Telegram-Init-Data": initData,
-        ...(options.headers || {})
-    };
-
     const response = await fetch(`${API_BASE_URL}${path}`, {
         ...options,
-        headers
+        headers: {
+            "Content-Type": "application/json",
+            "X-Telegram-Init-Data": initData,
+            ...(options.headers || {})
+        }
     });
 
     const data = await response.json();
@@ -44,8 +45,61 @@ async function api(path, options = {}) {
     return data;
 }
 
-async function startMining() {
+function updateUI(data) {
+    const mining = data.mining || data;
+
+    if (balance && mining.balance !== undefined) {
+        balance.textContent = Number(mining.balance).toLocaleString();
+    }
+
+    const active = Boolean(
+        mining.mining_active ??
+        mining.active ??
+        mining.is_active
+    );
+
+    if (miningStatus) {
+        miningStatus.textContent = active ? "MINING ACTIVE" : "MINING INACTIVE";
+    }
+
+    if (startButton) {
+        startButton.style.display = active ? "none" : "block";
+    }
+
+    if (mining.remaining_seconds !== undefined) {
+        timer.textContent = formatTime(mining.remaining_seconds);
+    } else if (mining.next_claim_at) {
+        const remaining = Math.max(
+            0,
+            Math.floor((new Date(mining.next_claim_at).getTime() - Date.now()) / 1000)
+        );
+        timer.textContent = formatTime(remaining);
+    }
+
+    if (mining.can_claim === true || mining.remaining_seconds === 0) {
+        claimButton.disabled = false;
+        claimButton.textContent = "CLAIM 1,440 ZNT";
+    } else {
+        claimButton.disabled = true;
+        claimButton.textContent = "CLAIM NOT READY";
+    }
+}
+
+async function loadMiningStatus() {
     try {
+        const data = await api("/api/mining/status");
+        console.log("Mining status:", data);
+        updateUI(data);
+    } catch (error) {
+        console.error("Mining status error:", error);
+    }
+}
+
+startButton?.addEventListener("click", async () => {
+    try {
+        startButton.disabled = true;
+        startButton.textContent = "STARTING...";
+
         const data = await api("/api/mining/start", {
             method: "POST"
         });
@@ -56,33 +110,12 @@ async function startMining() {
     } catch (error) {
         console.error(error);
         alert(error.message);
+        startButton.disabled = false;
+        startButton.textContent = "START MINING";
     }
-}
+});
 
-async function loadMiningStatus() {
-    try {
-        const data = await api("/api/mining/status");
-
-        console.log("Mining status:", data);
-
-        if (data.mining) {
-            const mining = data.mining;
-
-            if (typeof mining.remaining_seconds === "number") {
-                updateTimer(mining.remaining_seconds);
-            }
-        }
-
-    } catch (error) {
-        console.error("Mining status error:", error);
-    }
-}
-
-function updateTimer(seconds) {
-    timer.textContent = formatTime(seconds);
-}
-
-claimButton.addEventListener("click", async () => {
+claimButton?.addEventListener("click", async () => {
     try {
         claimButton.disabled = true;
         claimButton.textContent = "CLAIMING...";
@@ -91,18 +124,17 @@ claimButton.addEventListener("click", async () => {
             method: "POST"
         });
 
-        alert(
-            `Claim successful!\n\nClaimed: ${data.claimed} ZNT`
-        );
+        alert(`Claim successful!\n\nClaimed: ${data.claimed} ZNT`);
 
         await loadMiningStatus();
 
     } catch (error) {
         console.error(error);
         alert(error.message);
-        claimButton.disabled = false;
-        claimButton.textContent = "CLAIM";
+        await loadMiningStatus();
     }
 });
 
 loadMiningStatus();
+
+setInterval(loadMiningStatus, 30000);

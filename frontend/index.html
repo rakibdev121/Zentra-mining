@@ -29,7 +29,7 @@
 
             <div class="status">
                 <span class="dot"></span>
-                MINING ACTIVE
+                <span id="mining-status">MINING</span>
             </div>
 
 
@@ -37,7 +37,7 @@
 
                 <p>Your Balance</p>
 
-                <h2>1,440 <span>ZNT</span></h2>
+                <h2><span id="balance">0</span> <span>ZNT</span></h2>
 
                 <div class="rate">
                     ⚡ 1 ZNT / MINUTE
@@ -50,14 +50,13 @@
 
                 <div class="mining-ring">
                     <div>
-                        <strong>18:42:16</strong>
+                        <strong id="mining-timer">--:--:--</strong>
                         <small>NEXT CLAIM</small>
                     </div>
                 </div>
 
-                <button class="claim-btn">
-                    CLAIM 1,440 ZNT
-                </button>
+                <button class="start-mining-btn" id="start-mining-btn">START MINING</button>
+                <button class="claim-btn" id="claim-btn" disabled>CLAIM</button>
 
             </section>
 
