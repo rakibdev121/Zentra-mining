@@ -48,8 +48,8 @@ async function api(path, options = {}) {
 function updateUI(data) {
     const mining = data.mining || data;
 
-    if (balance && mining.balance !== undefined) {
-        balance.textContent = Number(mining.balance).toLocaleString();
+    if (balance && mining.mining_balance !== undefined) {
+        balance.textContent = Number(mining.mining_balance).toLocaleString();
     }
 
     const active = Boolean(
@@ -66,7 +66,7 @@ function updateUI(data) {
         startButton.style.display = active ? "none" : "block";
     }
 
-    if (mining.remaining_seconds !== undefined) {
+    if (mining.remaining_minutes !== undefined) {
         timer.textContent = formatTime(mining.remaining_seconds);
     } else if (mining.next_claim_at) {
         const remaining = Math.max(
@@ -76,7 +76,7 @@ function updateUI(data) {
         timer.textContent = formatTime(remaining);
     }
 
-    if (mining.can_claim === true || mining.remaining_seconds === 0) {
+    if (mining.claimable > 0 || mining.remaining_minutes === 0) {
         claimButton.disabled = false;
         claimButton.textContent = "CLAIM 1,440 ZNT";
     } else {
