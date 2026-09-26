@@ -1,23 +1,24 @@
-const API_BASE_URL = "https://zentra-mining.onrender.com";
+const API_BASE_URL =
+    "https://zentra-mining.onrender.com";
 
-const tg = window.Telegram?.WebApp;
+const tg =
+    window.Telegram?.WebApp;
 
 if (tg) {
     tg.ready();
     tg.expand();
 }
 
-const initData = tg?.initData || "";
+const initData =
+    tg?.initData || "";
 
 const telegramUser =
     tg?.initDataUnsafe?.user || null;
 
-const telegramUserId =
-    telegramUser?.id || null;
 
-console.log("Zentra Telegram User:", telegramUser);
-console.log("Telegram ID:", telegramUserId);
-console.log("InitData:", initData ? "OK" : "MISSING");
+// =========================
+// Elements
+// =========================
 
 const timer =
     document.querySelector("#mining-timer");
@@ -34,7 +35,16 @@ const startButton =
 const claimButton =
     document.querySelector("#claim-btn");
 
+
+// =========================
+// Mining state
+// =========================
+
 let remainingSeconds = 0;
+
+let liveBalance = 0;
+
+let miningActive = false;
 
 
 // =========================
@@ -52,18 +62,24 @@ function notify(message) {
 
 
 // =========================
-// Time formatter
+// Format time
 // =========================
 
 function formatTime(seconds) {
 
-    seconds = Math.max(0, Math.floor(seconds));
+    seconds =
+        Math.max(
+            0,
+            Math.floor(seconds)
+        );
 
     const hours =
         Math.floor(seconds / 3600);
 
     const minutes =
-        Math.floor((seconds % 3600) / 60);
+        Math.floor(
+            (seconds % 3600) / 60
+        );
 
     const secs =
         seconds % 60;
@@ -73,20 +89,66 @@ function formatTime(seconds) {
         minutes,
         secs
     ]
-        .map(v => String(v).padStart(2, "0"))
+        .map(
+            value =>
+                String(value).padStart(2, "0")
+        )
         .join(":");
 }
 
 
 // =========================
-// Timer
+// Render
 // =========================
 
-function renderTimer() {
+function renderUI() {
+
+    if (balance) {
+
+        balance.textContent =
+            Number(liveBalance)
+                .toLocaleString(
+                    undefined,
+                    {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 6
+                    }
+                );
+    }
 
     if (timer) {
+
         timer.textContent =
-            formatTime(remainingSeconds);
+            formatTime(
+                remainingSeconds
+            );
+    }
+
+    if (miningStatus) {
+
+        miningStatus.textContent =
+            miningActive
+                ? "MINING ACTIVE"
+                : "MINING INACTIVE";
+    }
+
+    if (startButton) {
+
+        startButton.style.display =
+            miningActive
+                ? "none"
+                : "block";
+    }
+
+    if (claimButton) {
+
+        claimButton.disabled =
+            remainingSeconds > 0;
+
+        claimButton.textContent =
+            remainingSeconds <= 0
+                ? "CLAIM 1,440 ZNT"
+                : "CLAIM NOT READY";
     }
 }
 
@@ -95,35 +157,41 @@ function renderTimer() {
 // API
 // =========================
 
-async function api(path, options = {}) {
+async function api(
+    path,
+    options = {}
+) {
 
     if (!initData) {
+
         throw new Error(
-            "Telegram authentication data missing."
+            "Please open Zentra inside Telegram."
         );
     }
 
-    const response = await fetch(
-        `${API_BASE_URL}${path}`,
-        {
-            ...options,
+    const response =
+        await fetch(
+            `${API_BASE_URL}${path}`,
+            {
+                ...options,
 
-            headers: {
-                "Content-Type":
-                    "application/json",
+                headers: {
+                    "Content-Type":
+                        "application/json",
 
-                "X-Telegram-Init-Data":
-                    initData,
+                    "X-Telegram-Init-Data":
+                        initData,
 
-                ...(options.headers || {})
+                    ...(options.headers || {})
+                }
             }
-        }
-    );
+        );
 
     let data;
 
     try {
-        data = await response.json();
+        data =
+            await response.json();
     } catch {
         throw new Error(
             "Invalid server response."
@@ -143,24 +211,18 @@ async function api(path, options = {}) {
 
 
 // =========================
-// Register user
+// Register
 // =========================
 
 async function registerUser() {
 
     try {
 
-        const data =
-            await api(
-                "/api/users/register",
-                {
-                    method: "POST"
-                }
-            );
-
-        console.log(
-            "User registered:",
-            data
+        await api(
+            "/api/users/register",
+            {
+                method: "POST"
+            }
         );
 
         return true;
@@ -178,102 +240,6 @@ async function registerUser() {
 
 
 // =========================
-// Update UI
-// =========================
-
-function updateUI(data) {
-
-    const mining =
-        data.mining || data;
-
-    if (
-        balance &&
-        mining.mining_balance !== undefined
-    ) {
-
-        balance.textContent =
-            Number(
-                mining.mining_balance
-            ).toLocaleString(
-                undefined,
-                {
-                    maximumFractionDigits: 6
-                }
-            );
-    }
-
-
-    const active =
-        Boolean(
-            mining.mining_active ??
-            mining.active ??
-            mining.is_active
-        );
-
-
-    if (miningStatus) {
-
-        miningStatus.textContent =
-            active
-                ? "MINING ACTIVE"
-                : "MINING INACTIVE";
-    }
-
-
-    if (startButton) {
-
-        startButton.style.display =
-            active
-                ? "none"
-                : "block";
-    }
-
-
-    if (
-        mining.remaining_minutes !==
-        undefined
-    ) {
-
-        remainingSeconds =
-            Math.max(
-                0,
-                Number(
-                    mining.remaining_minutes
-                ) * 60
-            );
-    }
-
-
-    renderTimer();
-
-
-    const claimable =
-        Number(
-            mining.claimable || 0
-        );
-
-
-    if (
-        claimable > 0 ||
-        remainingSeconds === 0
-    ) {
-
-        claimButton.disabled = false;
-
-        claimButton.textContent =
-            "CLAIM 1,440 ZNT";
-
-    } else {
-
-        claimButton.disabled = true;
-
-        claimButton.textContent =
-            "CLAIM NOT READY";
-    }
-}
-
-
-// =========================
 // Load mining status
 // =========================
 
@@ -286,12 +252,32 @@ async function loadMiningStatus() {
                 "/api/mining/status"
             );
 
-        console.log(
-            "Mining status:",
-            data
-        );
+        const mining =
+            data.mining || data;
 
-        updateUI(data);
+        miningActive =
+            Boolean(
+                mining.mining_active
+            );
+
+        remainingSeconds =
+            Number(
+                mining.remaining_seconds ??
+                (
+                    Number(
+                        mining.remaining_minutes || 0
+                    ) * 60
+                )
+            );
+
+        liveBalance =
+            Number(
+                mining.live_balance ??
+                mining.mining_balance ??
+                0
+            );
+
+        renderUI();
 
     } catch (error) {
 
@@ -324,10 +310,8 @@ startButton?.addEventListener(
             startButton.textContent =
                 "STARTING...";
 
-
             const registered =
                 await registerUser();
-
 
             if (!registered) {
 
@@ -336,21 +320,12 @@ startButton?.addEventListener(
                 );
             }
 
-
-            const data =
-                await api(
-                    "/api/mining/start",
-                    {
-                        method: "POST"
-                    }
-                );
-
-
-            console.log(
-                "Mining started:",
-                data
+            await api(
+                "/api/mining/start",
+                {
+                    method: "POST"
+                }
             );
-
 
             await loadMiningStatus();
 
@@ -373,12 +348,16 @@ startButton?.addEventListener(
 
 
 // =========================
-// Claim mining reward
+// Claim
 // =========================
 
 claimButton?.addEventListener(
     "click",
     async () => {
+
+        if (remainingSeconds > 0) {
+            return;
+        }
 
         try {
 
@@ -388,7 +367,6 @@ claimButton?.addEventListener(
             claimButton.textContent =
                 "CLAIMING...";
 
-
             const data =
                 await api(
                     "/api/mining/claim",
@@ -397,11 +375,9 @@ claimButton?.addEventListener(
                     }
                 );
 
-
             notify(
-                `Claim successful!\n\nClaimed: ${data.claimed_amount} ZNT`
+                `Claim successful!\n\n+${data.claimed_amount} ZNT`
             );
-
 
             await loadMiningStatus();
 
@@ -420,28 +396,8 @@ claimButton?.addEventListener(
 
 
 // =========================
-// Navigation
+// Home
 // =========================
-
-function setActive(button) {
-
-    document
-        .querySelectorAll(
-            ".bottom-nav button"
-        )
-        .forEach(btn => {
-
-            btn.classList.remove(
-                "active"
-            );
-        });
-
-
-    button.classList.add(
-        "active"
-    );
-}
-
 
 document
     .querySelector("#home-btn")
@@ -449,11 +405,22 @@ document
         "click",
         () => {
 
-            setActive(
-                document.querySelector(
-                    "#home-btn"
+            document
+                .querySelectorAll(
+                    ".bottom-nav button"
                 )
-            );
+                .forEach(
+                    btn =>
+                        btn.classList.remove(
+                            "active"
+                        )
+                );
+
+            document
+                .querySelector("#home-btn")
+                ?.classList.add(
+                    "active"
+                );
 
             window.scrollTo({
                 top: 0,
@@ -463,22 +430,35 @@ document
     );
 
 
+// =========================
+// Mining navigation
+// =========================
+
 document
     .querySelector("#mining-btn")
     ?.addEventListener(
         "click",
         () => {
 
-            setActive(
-                document.querySelector(
-                    "#mining-btn"
+            document
+                .querySelectorAll(
+                    ".bottom-nav button"
                 )
-            );
+                .forEach(
+                    btn =>
+                        btn.classList.remove(
+                            "active"
+                        )
+                );
 
             document
-                .querySelector(
-                    ".mining-card"
-                )
+                .querySelector("#mining-btn")
+                ?.classList.add(
+                    "active"
+                );
+
+            document
+                .querySelector(".mining-card")
                 ?.scrollIntoView({
                     behavior: "smooth"
                 });
@@ -486,17 +466,15 @@ document
     );
 
 
+// =========================
+// Referral
+// =========================
+
 document
     .querySelector("#referral-btn")
     ?.addEventListener(
         "click",
         () => {
-
-            setActive(
-                document.querySelector(
-                    "#referral-btn"
-                )
-            );
 
             notify(
                 "Referral system coming soon."
@@ -504,6 +482,10 @@ document
         }
     );
 
+
+// =========================
+// Wallet
+// =========================
 
 document
     .querySelector("#wallet-btn")
@@ -511,44 +493,16 @@ document
         "click",
         () => {
 
-            setActive(
-                document.querySelector(
-                    "#wallet-btn"
-                )
-            );
-
             notify(
-                "Wallet system coming soon."
+                "Wallet / Claim DApp coming soon."
             );
         }
     );
 
 
-document
-    .querySelector("#referral-card")
-    ?.addEventListener(
-        "click",
-        () => {
-
-            notify(
-                "Referral system coming soon."
-            );
-        }
-    );
-
-
-document
-    .querySelector("#wallet-card")
-    ?.addEventListener(
-        "click",
-        () => {
-
-            notify(
-                "Wallet system coming soon."
-            );
-        }
-    );
-
+// =========================
+// Profile
+// =========================
 
 document
     .querySelector("#profile-btn")
@@ -556,11 +510,18 @@ document
         "click",
         () => {
 
-            notify(
-                telegramUser
-                    ? `Telegram ID: ${telegramUser.id}`
-                    : "Telegram user not detected."
-            );
+            if (telegramUser) {
+
+                notify(
+                    `Telegram ID: ${telegramUser.id}`
+                );
+
+            } else {
+
+                notify(
+                    "Telegram user not detected."
+                );
+            }
         }
     );
 
@@ -571,42 +532,21 @@ document
 
 async function initializeApp() {
 
-    console.log(
-        "Initializing Zentra..."
-    );
-
-
     if (!initData) {
 
         if (miningStatus) {
-
             miningStatus.textContent =
                 "OPEN INSIDE TELEGRAM";
         }
 
-        notify(
-            "Please open Zentra from Telegram."
-        );
-
         return;
     }
-
 
     const registered =
         await registerUser();
 
-
     if (registered) {
-
         await loadMiningStatus();
-
-    } else {
-
-        if (miningStatus) {
-
-            miningStatus.textContent =
-                "SERVER ERROR";
-        }
     }
 }
 
@@ -615,17 +555,26 @@ initializeApp();
 
 
 // =========================
-// Local countdown
+// LIVE MINING
 // =========================
 
 setInterval(
     () => {
 
-        if (remainingSeconds > 0) {
+        if (
+            miningActive &&
+            remainingSeconds > 0
+        ) {
 
             remainingSeconds--;
 
-            renderTimer();
+            // 1 ZNT per minute
+            // = 1/60 ZNT per second
+
+            liveBalance +=
+                1 / 60;
+
+            renderUI();
         }
 
     },
@@ -633,7 +582,9 @@ setInterval(
 );
 
 
-// Refresh status every 30 sec
+// =========================
+// Server sync
+// =========================
 
 setInterval(
     loadMiningStatus,

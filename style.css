@@ -283,3 +283,84 @@ button {
         height: 165px;
     }
 }
+
+
+/* =================================
+   ZENTRA MINING BUTTONS
+================================= */
+
+.mining-card {
+    position: relative;
+}
+
+
+.start-mining-btn,
+.claim-btn {
+    width: 100%;
+    min-height: 56px;
+
+    border: none;
+    border-radius: 18px;
+
+    margin-top: 14px;
+
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 1px;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.15s ease,
+        opacity 0.15s ease,
+        filter 0.15s ease;
+}
+
+
+.start-mining-btn {
+    background: linear-gradient(
+        135deg,
+        #d6b43c,
+        #a98718
+    );
+
+    color: #090909;
+}
+
+
+.claim-btn {
+    background: linear-gradient(
+        135deg,
+        #d6b43c,
+        #9e7d16
+    );
+
+    color: #090909;
+}
+
+
+.start-mining-btn:active,
+.claim-btn:active {
+    transform: scale(0.97);
+}
+
+
+.start-mining-btn:disabled,
+.claim-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: grayscale(0.3);
+}
+
+
+.start-mining-btn:not(:disabled):hover,
+.claim-btn:not(:disabled):hover {
+    filter: brightness(1.08);
+}
+
+
+#balance {
+    font-variant-numeric: tabular-nums;
+}
+
+
