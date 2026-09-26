@@ -14,6 +14,8 @@ const miningStatus = document.querySelector("#mining-status");
 const startButton = document.querySelector("#start-mining-btn");
 const claimButton = document.querySelector("#claim-btn");
 
+let remainingSeconds = 0;
+
 function formatTime(seconds) {
     seconds = Math.max(0, Math.floor(seconds));
 
@@ -24,6 +26,12 @@ function formatTime(seconds) {
     return [hours, minutes, secs]
         .map(v => String(v).padStart(2, "0"))
         .join(":");
+}
+
+function renderTimer() {
+    if (timer) {
+        timer.textContent = formatTime(remainingSeconds);
+    }
 }
 
 async function api(path, options = {}) {
@@ -45,11 +53,31 @@ async function api(path, options = {}) {
     return data;
 }
 
+async function registerUser() {
+    if (!initData) {
+        console.error("Telegram initData is missing");
+        return false;
+    }
+
+    try {
+        const data = await api("/api/users/register", {
+            method: "POST"
+        });
+
+        console.log("User registered:", data);
+        return true;
+    } catch (error) {
+        console.error("Register error:", error);
+        return false;
+    }
+}
+
 function updateUI(data) {
     const mining = data.mining || data;
 
     if (balance && mining.mining_balance !== undefined) {
-        balance.textContent = Number(mining.mining_balance).toLocaleString();
+        balance.textContent =
+            Number(mining.mining_balance).toLocaleString();
     }
 
     const active = Boolean(
@@ -59,7 +87,8 @@ function updateUI(data) {
     );
 
     if (miningStatus) {
-        miningStatus.textContent = active ? "MINING ACTIVE" : "MINING INACTIVE";
+        miningStatus.textContent =
+            active ? "MINING ACTIVE" : "MINING INACTIVE";
     }
 
     if (startButton) {
@@ -67,14 +96,11 @@ function updateUI(data) {
     }
 
     if (mining.remaining_minutes !== undefined) {
-        timer.textContent = formatTime(mining.remaining_seconds);
-    } else if (mining.next_claim_at) {
-        const remaining = Math.max(
-            0,
-            Math.floor((new Date(mining.next_claim_at).getTime() - Date.now()) / 1000)
-        );
-        timer.textContent = formatTime(remaining);
+        remainingSeconds =
+            Math.max(0, Number(mining.remaining_minutes) * 60);
     }
+
+    renderTimer();
 
     if (mining.claimable > 0 || mining.remaining_minutes === 0) {
         claimButton.disabled = false;
@@ -100,29 +126,24 @@ startButton?.addEventListener("click", async () => {
         startButton.disabled = true;
         startButton.textContent = "STARTING...";
 
+        const registered = await registerUser();
+
+        if (!registered) {
+            throw new Error("User registration failed");
+        }
+
         const data = await api("/api/mining/start", {
             method: "POST"
         });
 
         console.log("Mining started:", data);
-        await async function registerUser() {
-    try {
-        const data = await api("/api/users/register", {
-            method: "POST"
-        });
-        console.log("User registered:", data);
-        return true;
-    } catch (error) {
-        console.error("Register error:", error);
-        return false;
-    }
-}
 
-loadMiningStatus();
+        await loadMiningStatus();
 
     } catch (error) {
         console.error(error);
         alert(error.message);
+
         startButton.disabled = false;
         startButton.textContent = "START MINING";
     }
@@ -137,7 +158,9 @@ claimButton?.addEventListener("click", async () => {
             method: "POST"
         });
 
-        alert(`Claim successful!\n\nClaimed: ${data.claimed} ZNT`);
+        alert(
+            `Claim successful!\n\nClaimed: ${data.claimed_amount} ZNT`
+        );
 
         await loadMiningStatus();
 
@@ -148,6 +171,21 @@ claimButton?.addEventListener("click", async () => {
     }
 });
 
-registerUser().then(() => loadMiningStatus());
+async function initializeApp() {
+    const registered = await registerUser();
+
+    if (registered) {
+        await loadMiningStatus();
+    }
+}
+
+initializeApp();
+
+setInterval(() => {
+    if (remainingSeconds > 0) {
+        remainingSeconds--;
+        renderTimer();
+    }
+}, 1000);
 
 setInterval(loadMiningStatus, 30000);
