@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zentra Admin</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 18px;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        .login,
+        .user-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.08);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 11px 16px;
+            border: 0;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px 3px;
+            background: #2563eb;
+            color: white;
+        }
+
+        button.approve {
+            background: #16a34a;
+        }
+
+        button.danger {
+            background: #dc2626;
+        }
+
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f3f4f6;
+        }
+
+        .user-card h3 {
+            margin-top: 0;
+        }
+
+        .wallet {
+            margin-top: 15px;
+        }
+
+        #users {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    🚀 Zentra Admin Panel
+</header>
+
+<div class="container">
+
+    <div class="login">
+        <h3>🔐 Admin Login</h3>
+
+        <input
+            type="password"
+            id="adminSecret"
+            placeholder="Enter Admin Secret"
+        >
+
+        <button onclick="loadUsers()">
+            Login & Load Users
+        </button>
+
+        <div id="message"></div>
+    </div>
+
+    <div id="users"></div>
+
+</div>
+
+<script>
+
+const API_BASE_URL = "https://zentra-mining.onrender.com";
+
+let adminSecret = "";
+
+async function loadUsers() {
+
+    const input = document.getElementById("adminSecret");
+
+    if (input.value.trim()) {
+        adminSecret = input.value.trim();
+    }
+
+    if (!adminSecret) {
+        showMessage("Admin secret required.");
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/api/admin/users`,
+            {
+                headers: {
+                    "x-admin-secret": adminSecret
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            showMessage(data.message || "Unauthorized");
+            return;
+        }
+
+        renderUsers(data.users);
+
+    } catch (error) {
+
+        showMessage("Connection failed.");
+
+        console.error(error);
+    }
+}
+
+
+function renderUsers(users) {
+
+    const container = document.getElementById("users");
+
+    if (!users.length) {
+
+        container.innerHTML = `
+            <div class="user-card">
+                No users found.
+            </div>
+        `;
+
+        return;
+    }
+
+    container.innerHTML = users.map(user => `
+
+        <div class="user-card">
+
+            <h3>
+                👤 Telegram ID: ${user.telegram_id}
+            </h3>
+
+            <p>
+                Username:
+                ${user.username || "—"}
+            </p>
+
+            <p>
+                💰 Mining Balance:
+                <strong>${user.mining_balance} RAKI</strong>
+            </p>
+
+            <div class="status">
+
+                Telegram:
+                ${user.telegram_approved ? "✅ Approved" : "❌ Not Approved"}
+
+                <br>
+
+                Wallet:
+                ${user.wallet_approved ? "✅ Approved" : "❌ Not Approved"}
+
+                <br>
+
+                Claim:
+                ${user.claim_enabled ? "✅ Enabled" : "❌ Disabled"}
+
+            </div>
+
+            ${
+                !user.telegram_approved
+                ?
+                `<button
+                    class="approve"
+                    onclick="approveTelegram('${user.telegram_id}')">
+                    ✅ Approve Telegram
+                </button>`
+                :
+                ""
+            }
+
+            <div class="wallet">
+
+                <input
+                    id="wallet-${user.telegram_id}"
+                    value="${user.wallet_address || ""}"
+                    placeholder="0x wallet address"
+                >
+
+                <button
+                    onclick="saveWallet('${user.telegram_id}')">
+                    💳 Save Wallet
+                </button>
+
+                ${
+                    user.wallet_address && !user.wallet_approved
+                    ?
+                    `<button
+                        class="approve"
+                        onclick="approveWallet('${user.telegram_id}')">
+                        ✅ Approve Wallet
+                    </button>`
+                    :
+                    ""
+                }
+
+                ${
+                    user.telegram_approved && user.wallet_approved
+                    ?
+                    `<button
+                        class="${user.claim_enabled ? "danger" : "approve"}"
+                        onclick="toggleClaim(
+                            '${user.telegram_id}',
+                            ${!user.claim_enabled}
+                        )">
+                        ${
+                            user.claim_enabled
+                            ? "🔴 Disable Claim"
+                            : "🟢 Enable Claim"
+                        }
+                    </button>`
+                    :
+                    ""
+                }
+
+            </div>
+
+        </div>
+
+    `).join("");
+}
+
+
+async function adminRequest(path, options = {}) {
+
+    options.headers = {
+        "Content-Type": "application/json",
+        "x-admin-secret": adminSecret,
+        ...(options.headers || {})
+    };
+
+    const response = await fetch(
+        `${API_BASE_URL}${path}`,
+        options
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || "Request failed");
+    }
+
+    return data;
+}
+
+
+async function approveTelegram(telegramId) {
+
+    try {
+
+        await adminRequest(
+            `/api/admin/users/${telegramId}/approve`,
+            {
+                method: "POST"
+            }
+        );
+
+        await loadUsers();
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+}
+
+
+async function saveWallet(telegramId) {
+
+    const input =
+        document.getElementById(`wallet-${telegramId}`);
+
+    const wallet = input.value.trim();
+
+    if (!wallet) {
+        alert("Wallet address required.");
+        return;
+    }
+
+    try {
+
+        await adminRequest(
+            `/api/admin/users/${telegramId}/wallet`,
+            {
+                method: "POST",
+                body: JSON.stringify({
+                    wallet_address: wallet
+                })
+            }
+        );
+
+        await loadUsers();
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+}
+
+
+async function approveWallet(telegramId) {
+
+    try {
+
+        await adminRequest(
+            `/api/admin/users/${telegramId}/wallet/approve`,
+            {
+                method: "POST"
+            }
+        );
+
+        await loadUsers();
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+}
+
+
+async function toggleClaim(telegramId, enabled) {
+
+    try {
+
+        await adminRequest(
+            `/api/admin/users/${telegramId}/claim-enable`,
+            {
+                method: "POST",
+                body: JSON.stringify({
+                    enabled: enabled
+                })
+            }
+        );
+
+        await loadUsers();
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+}
+
+
+function showMessage(message) {
+
+    document.getElementById("message").innerHTML =
+        `<div class="status">${message}</div>`;
+}
+
+</script>
+
+</body>
+</html>
