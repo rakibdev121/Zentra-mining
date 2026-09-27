@@ -476,9 +476,29 @@ document
         "click",
         () => {
 
-            notify(
-                "Referral system coming soon."
-            );
+            document
+                .querySelectorAll(
+                    ".bottom-nav button"
+                )
+                .forEach(
+                    btn =>
+                        btn.classList.remove(
+                            "active"
+                        )
+                );
+
+            document
+                .querySelector("#referral-btn")
+                ?.classList.add(
+                    "active"
+                );
+
+            document
+                .querySelector("#referral-panel")
+                ?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
         }
     );
 
