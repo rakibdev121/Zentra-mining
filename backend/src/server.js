@@ -37,4 +37,5 @@ app.listen(PORT, () => {
     console.log(`Zentra API running on port ${PORT}`);
 });
 
-require("../bot/admin-bot");
+
+require("./admin-bot");
