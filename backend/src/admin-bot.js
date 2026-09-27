@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const TelegramBot = require("node-telegram-bot-api");
-const pool = require("../backend/src/db");
+const pool = require("./db");
 
 const BOT_TOKEN = process.env.ADMIN_BOT_TOKEN;
 const ADMIN_ID = String(process.env.ADMIN_TELEGRAM_ID);
