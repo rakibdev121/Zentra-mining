@@ -504,23 +504,6 @@ document
 
 
 // =========================
-// Wallet
-// =========================
-
-document
-    .querySelector("#wallet-btn")
-    ?.addEventListener(
-        "click",
-        () => {
-
-            notify(
-                "Wallet / Claim DApp coming soon."
-            );
-        }
-    );
-
-
-// =========================
 // Profile
 // =========================
 
