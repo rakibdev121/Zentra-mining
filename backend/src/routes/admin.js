@@ -218,3 +218,48 @@ router.post("/users/:telegramId/claim-enable", async (req, res) => {
 
 
 module.exports = router;
+
+router.get("/wallet-check/:telegramId", async (req, res) => {
+    try {
+        const telegramId = String(req.params.telegramId);
+
+        if (telegramId !== String(process.env.ADMIN_TELEGRAM_ID)) {
+            return res.status(403).json({
+                success: false,
+                message: "Forbidden"
+            });
+        }
+
+        const result = await pool.query(`
+            SELECT
+                telegram_id,
+                username,
+                wallet_address,
+                wallet_approved,
+                claim_enabled,
+                updated_at
+            FROM users
+            WHERE telegram_id = $1
+        `, [telegramId]);
+
+        if (!result.rows.length) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        res.json({
+            success: true,
+            user: result.rows[0]
+        });
+
+    } catch (error) {
+        console.error("Wallet check error:", error.message);
+
+        res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+});
