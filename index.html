@@ -145,6 +145,57 @@
 
 </div>
 
+
+<!-- =================================
+     ZENTRA WALLET PANEL
+================================= -->
+
+<section class="wallet-panel" id="wallet-panel" style="display:none;">
+
+    <div class="wallet-header">
+        <span class="wallet-icon">👛</span>
+        <div>
+            <h2>Zentra Wallet</h2>
+            <p>Submit your BSC wallet for Zentra claims.</p>
+        </div>
+    </div>
+
+    <div class="wallet-field">
+        <label>Telegram ID</label>
+        <input
+            id="wallet-telegram-id"
+            type="text"
+            readonly
+            placeholder="Loading..."
+        >
+        <small>🔒 Telegram ID is automatically verified.</small>
+    </div>
+
+    <div class="wallet-field">
+        <label>BSC Wallet Address</label>
+        <input
+            id="wallet-address"
+            type="text"
+            placeholder="0x..."
+            autocomplete="off"
+            spellcheck="false"
+        >
+    </div>
+
+    <button
+        id="submit-wallet-btn"
+        class="wallet-submit-btn"
+    >
+        SUBMIT WALLET
+    </button>
+
+    <div
+        id="wallet-status"
+        class="wallet-status"
+    ></div>
+
+</section>
+
 <script src="app.js"></script>
 
 </body>

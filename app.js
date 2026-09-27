@@ -837,3 +837,195 @@ if (initData) {
     processReferral();
 }
 
+
+
+// =================================
+// ZENTRA WALLET SYSTEM
+// =================================
+
+const walletPanel =
+    document.querySelector("#wallet-panel");
+
+const walletTelegramId =
+    document.querySelector("#wallet-telegram-id");
+
+const walletAddressInput =
+    document.querySelector("#wallet-address");
+
+const submitWalletButton =
+    document.querySelector("#submit-wallet-btn");
+
+const walletStatus =
+    document.querySelector("#wallet-status");
+
+
+// Open Wallet Panel
+document
+    .querySelector("#wallet-btn")
+    ?.addEventListener("click", async () => {
+
+        // Hide other panels
+        document
+            .querySelectorAll(
+                ".referral-panel"
+            )
+            .forEach(panel => {
+                panel.style.display = "none";
+            });
+
+        if (walletPanel) {
+            walletPanel.style.display = "block";
+
+            walletPanel.scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            });
+        }
+
+        // Telegram ID comes directly from Telegram
+        if (walletTelegramId && telegramUser) {
+            walletTelegramId.value =
+                String(telegramUser.id);
+        }
+
+        // Load current wallet status
+        try {
+            const data =
+                await api("/api/users/me");
+
+            if (
+                data.success &&
+                data.user
+            ) {
+                if (walletTelegramId) {
+                    walletTelegramId.value =
+                        String(data.user.telegram_id);
+                }
+
+                if (
+                    walletAddressInput &&
+                    data.user.wallet_address
+                ) {
+                    walletAddressInput.value =
+                        data.user.wallet_address;
+                }
+
+                if (data.user.wallet_approved) {
+                    showWalletStatus(
+                        "✅ Wallet approved",
+                        "success"
+                    );
+                } else if (data.user.wallet_address) {
+                    showWalletStatus(
+                        "⏳ Wallet submitted. Waiting for admin approval.",
+                        "pending"
+                    );
+                }
+            }
+
+        } catch (error) {
+            console.error(
+                "Wallet status error:",
+                error
+            );
+        }
+    });
+
+
+// Submit Wallet
+submitWalletButton?.addEventListener(
+    "click",
+    async () => {
+
+        const wallet =
+            walletAddressInput?.value.trim();
+
+        if (!wallet) {
+            showWalletStatus(
+                "❌ Please enter your BSC wallet address.",
+                "error"
+            );
+            return;
+        }
+
+        if (
+            !/^0x[a-fA-F0-9]{40}$/.test(wallet)
+        ) {
+            showWalletStatus(
+                "❌ Invalid BSC wallet address.",
+                "error"
+            );
+            return;
+        }
+
+        submitWalletButton.disabled = true;
+        submitWalletButton.textContent =
+            "SUBMITTING...";
+
+        try {
+
+            const data =
+                await api(
+                    "/api/users/wallet",
+                    {
+                        method: "POST",
+                        body: JSON.stringify({
+                            wallet_address: wallet
+                        })
+                    }
+                );
+
+            if (!data.success) {
+                throw new Error(
+                    data.message ||
+                    "Wallet submission failed"
+                );
+            }
+
+            showWalletStatus(
+                "✅ Wallet submitted successfully! Waiting for admin approval.",
+                "success"
+            );
+
+            walletAddressInput.value =
+                data.user.wallet_address;
+
+        } catch (error) {
+
+            console.error(
+                "Wallet submit error:",
+                error
+            );
+
+            showWalletStatus(
+                `❌ ${error.message}`,
+                "error"
+            );
+
+        } finally {
+
+            submitWalletButton.disabled =
+                false;
+
+            submitWalletButton.textContent =
+                "SUBMIT WALLET";
+        }
+    }
+);
+
+
+// Wallet status helper
+function showWalletStatus(
+    message,
+    type
+) {
+    if (!walletStatus) {
+        return;
+    }
+
+    walletStatus.textContent =
+        message;
+
+    walletStatus.className =
+        `wallet-status ${type}`;
+}

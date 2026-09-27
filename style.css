@@ -449,3 +449,132 @@ button {
     opacity: 0.7;
 }
 
+
+
+/* =================================
+   ZENTRA WALLET PANEL
+================================= */
+
+.wallet-panel {
+    margin: 18px 0 100px;
+    padding: 22px;
+    border: 1px solid rgba(214, 180, 60, 0.25);
+    border-radius: 22px;
+    background: rgba(20, 20, 20, 0.92);
+}
+
+.wallet-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.wallet-icon {
+    font-size: 34px;
+}
+
+.wallet-header h2 {
+    margin: 0 0 5px;
+    font-size: 22px;
+}
+
+.wallet-header p {
+    margin: 0;
+    font-size: 13px;
+    opacity: 0.65;
+    line-height: 1.4;
+}
+
+.wallet-field {
+    margin-bottom: 18px;
+}
+
+.wallet-field label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.wallet-field input {
+    width: 100%;
+    height: 50px;
+    padding: 0 14px;
+    box-sizing: border-box;
+    border: 1px solid rgba(214, 180, 60, 0.25);
+    border-radius: 12px;
+    background: #111;
+    color: #eee;
+    outline: none;
+    font-size: 14px;
+}
+
+.wallet-field input:focus {
+    border-color: #d6b43c;
+}
+
+#wallet-telegram-id {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.wallet-field small {
+    display: block;
+    margin-top: 7px;
+    font-size: 11px;
+    opacity: 0.55;
+}
+
+.wallet-submit-btn {
+    width: 100%;
+    height: 52px;
+    border: none;
+    border-radius: 13px;
+    background: linear-gradient(
+        135deg,
+        #d6b43c,
+        #a98718
+    );
+    color: #111;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.wallet-submit-btn:active {
+    transform: scale(0.98);
+}
+
+.wallet-submit-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.wallet-status {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    display: none;
+}
+
+.wallet-status.success,
+.wallet-status.pending,
+.wallet-status.error {
+    display: block;
+}
+
+.wallet-status.success {
+    border: 1px solid rgba(80, 200, 120, 0.3);
+}
+
+.wallet-status.pending {
+    border: 1px solid rgba(214, 180, 60, 0.3);
+}
+
+.wallet-status.error {
+    border: 1px solid rgba(255, 80, 80, 0.3);
+}
+
