@@ -61,37 +61,68 @@ router.post("/wallet", telegramAuth, async (req, res) => {
             });
         }
 
-        const result = await pool.query(
-            `
-            UPDATE users
-            SET
-                wallet_address = $1,
-                wallet_approved = FALSE,
-                claim_enabled = FALSE,
-                updated_at = NOW()
-            WHERE telegram_id = $2
-            RETURNING
-                id,
-                telegram_id,
-                username,
-                wallet_address,
-                wallet_approved,
-                claim_enabled
-            `,
-            [wallet_address, telegram_id]
+        // Make sure wallet request table exists
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS wallet_requests (
+                id BIGSERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL REFERENCES users(id),
+                telegram_id BIGINT NOT NULL,
+                wallet_address TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_wallet_requests_status
+            ON wallet_requests(status);
+
+            CREATE INDEX IF NOT EXISTS idx_wallet_requests_telegram_id
+            ON wallet_requests(telegram_id);
+        `);
+
+        const userResult = await pool.query(
+            `SELECT id, telegram_id, username
+             FROM users
+             WHERE telegram_id = $1`,
+            [telegram_id]
         );
 
-        if (result.rows.length === 0) {
+        if (userResult.rows.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "User not found"
             });
         }
 
+        const user = userResult.rows[0];
+
+        // Replace any previous pending request
+        await pool.query(
+            `UPDATE wallet_requests
+             SET status = 'replaced',
+                 updated_at = NOW()
+             WHERE user_id = $1
+               AND status = 'pending'`,
+            [user.id]
+        );
+
+        // Create new pending wallet request
+        const requestResult = await pool.query(
+            `INSERT INTO wallet_requests
+                (user_id, telegram_id, wallet_address, status)
+             VALUES ($1, $2, $3, 'pending')
+             RETURNING id, telegram_id, wallet_address, status, created_at`,
+            [
+                user.id,
+                telegram_id,
+                wallet_address
+            ]
+        );
+
         res.json({
             success: true,
-            message: "Wallet submitted successfully",
-            user: result.rows[0]
+            message: "Wallet submitted. Waiting for admin approval.",
+            request: requestResult.rows[0]
         });
 
     } catch (error) {
@@ -103,7 +134,6 @@ router.post("/wallet", telegramAuth, async (req, res) => {
         });
     }
 });
-
 
 
 // Get authenticated user

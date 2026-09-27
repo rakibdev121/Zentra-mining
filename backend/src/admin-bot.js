@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const TelegramBot = require("node-telegram-bot-api");
-const pool = require("./db");
+const pool = require("../backend/src/db");
 
 const BOT_TOKEN = process.env.ADMIN_BOT_TOKEN;
 const ADMIN_ID = String(process.env.ADMIN_TELEGRAM_ID);
@@ -35,6 +35,9 @@ async function sendAdminMenu(chatId) {
                 inline_keyboard: [
                     [
                         { text: "👥 Users", callback_data: "users" },
+                        { text: "👛 Wallet Requests", callback_data: "wallet_requests" }
+                    ],
+                    [
                         { text: "💰 Pending Claims", callback_data: "pending_claims" }
                     ],
                     [
@@ -146,6 +149,189 @@ bot.on("callback_query", async (query) => {
         }
 
         /* PENDING CLAIMS */
+
+        /* WALLET REQUESTS */
+
+        if (data === "wallet_requests") {
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS wallet_requests (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL REFERENCES users(id),
+                    telegram_id BIGINT NOT NULL,
+                    wallet_address TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            `);
+
+            const result = await pool.query(`
+                SELECT
+                    wr.id,
+                    wr.telegram_id,
+                    wr.wallet_address,
+                    wr.status,
+                    wr.created_at,
+                    u.username
+                FROM wallet_requests wr
+                LEFT JOIN users u ON u.id = wr.user_id
+                WHERE wr.status = 'pending'
+                ORDER BY wr.created_at ASC
+                LIMIT 50
+            `);
+
+            if (!result.rows.length) {
+                await bot.sendMessage(
+                    chatId,
+                    "👛 No pending wallet requests."
+                );
+                return;
+            }
+
+            for (const request of result.rows) {
+                const text =
+`👛 Wallet Request #${request.id}
+
+👤 Telegram ID: ${request.telegram_id}
+📛 Username: ${request.username ? "@" + request.username : "N/A"}
+👛 Wallet:
+${request.wallet_address}
+
+⏳ Status: ${request.status}`;
+
+                await bot.sendMessage(chatId, text, {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: "✅ APPROVE",
+                                    callback_data: `approve_wallet:${request.id}`
+                                },
+                                {
+                                    text: "❌ REJECT",
+                                    callback_data: `reject_wallet:${request.id}`
+                                }
+                            ]
+                        ]
+                    }
+                });
+            }
+
+            return;
+        }
+
+        /* APPROVE WALLET */
+
+        if (data.startsWith("approve_wallet:")) {
+            const requestId = data.split(":")[1];
+
+            const client = await pool.connect();
+
+            try {
+                await client.query("BEGIN");
+
+                const requestResult = await client.query(`
+                    SELECT
+                        wr.id,
+                        wr.user_id,
+                        wr.telegram_id,
+                        wr.wallet_address
+                    FROM wallet_requests wr
+                    WHERE wr.id = $1
+                      AND wr.status = 'pending'
+                    FOR UPDATE
+                `, [requestId]);
+
+                if (!requestResult.rows.length) {
+                    await client.query("ROLLBACK");
+
+                    await bot.sendMessage(
+                        chatId,
+                        "⚠️ This wallet request is no longer pending."
+                    );
+
+                    return;
+                }
+
+                const request = requestResult.rows[0];
+
+                await client.query(`
+                    UPDATE users
+                    SET
+                        wallet_address = $1,
+                        wallet_approved = TRUE,
+                        updated_at = NOW()
+                    WHERE id = $2
+                `, [
+                    request.wallet_address,
+                    request.user_id
+                ]);
+
+                await client.query(`
+                    UPDATE wallet_requests
+                    SET
+                        status = 'approved',
+                        updated_at = NOW()
+                    WHERE id = $1
+                `, [requestId]);
+
+                await client.query("COMMIT");
+
+                await bot.sendMessage(
+                    chatId,
+                    `✅ Wallet approved successfully.
+
+👤 Telegram ID: ${request.telegram_id}
+👛 Wallet:
+${request.wallet_address}`
+                );
+
+            } catch (error) {
+                await client.query("ROLLBACK");
+                throw error;
+            } finally {
+                client.release();
+            }
+
+            return;
+        }
+
+        /* REJECT WALLET */
+
+        if (data.startsWith("reject_wallet:")) {
+            const requestId = data.split(":")[1];
+
+            const result = await pool.query(`
+                UPDATE wallet_requests
+                SET
+                    status = 'rejected',
+                    updated_at = NOW()
+                WHERE id = $1
+                  AND status = 'pending'
+                RETURNING id, telegram_id, wallet_address
+            `, [requestId]);
+
+            if (!result.rows.length) {
+                await bot.sendMessage(
+                    chatId,
+                    "⚠️ This wallet request is no longer pending."
+                );
+                return;
+            }
+
+            const request = result.rows[0];
+
+            await bot.sendMessage(
+                chatId,
+                `❌ Wallet request rejected.
+
+👤 Telegram ID: ${request.telegram_id}
+👛 Wallet:
+${request.wallet_address}`
+            );
+
+            return;
+        }
 
         if (data === "pending_claims") {
             const result = await pool.query(`
