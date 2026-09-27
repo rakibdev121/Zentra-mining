@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const TelegramBot = require("node-telegram-bot-api");
-const pool = require("./db");
+const pool = require("../backend/src/db");
 
 const BOT_TOKEN = process.env.ADMIN_BOT_TOKEN;
 const ADMIN_ID = String(process.env.ADMIN_TELEGRAM_ID);
@@ -158,8 +158,7 @@ bot.on("callback_query", async (query) => {
                     u.telegram_id,
                     u.username
                 FROM claims c
-                JOIN users u ON u.id = c.user_id
-                WHERE c.status = 'pending'
+                LEFT JOIN users u ON u.id = c.user_id
                 ORDER BY c.created_at ASC
                 LIMIT 50
             `);

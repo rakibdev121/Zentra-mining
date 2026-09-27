@@ -158,8 +158,7 @@ bot.on("callback_query", async (query) => {
                     u.telegram_id,
                     u.username
                 FROM claims c
-                JOIN users u ON u.id = c.user_id
-                WHERE c.status = 'pending'
+                LEFT JOIN users u ON u.id = c.user_id
                 ORDER BY c.created_at ASC
                 LIMIT 50
             `);
