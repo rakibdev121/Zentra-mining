@@ -5,6 +5,7 @@ const cors = require("cors");
 const userRoutes = require("./routes/user");
 const miningRoutes = require("./routes/mining");
 const adminRoutes = require("./routes/admin");
+const referralRoutes = require("./routes/referral");
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(express.json());
 app.use("/api/users", userRoutes);
 app.use("/api/mining", miningRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/referral", referralRoutes);
 
 app.get("/", (req, res) => {
     res.json({

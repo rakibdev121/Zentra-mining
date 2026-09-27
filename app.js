@@ -590,3 +590,230 @@ setInterval(
     loadMiningStatus,
     30000
 );
+
+
+// =================================
+// ZENTRA REFERRAL SYSTEM
+// =================================
+
+const referralCount =
+    document.querySelector("#referral-count");
+
+const referralEarned =
+    document.querySelector("#referral-earned");
+
+const referralLink =
+    document.querySelector("#referral-link");
+
+const copyReferralButton =
+    document.querySelector("#copy-referral-btn");
+
+const shareReferralButton =
+    document.querySelector("#share-referral-btn");
+
+async function loadReferralInfo() {
+    try {
+        const data =
+            await api("/api/referral/info");
+
+        if (!data.success) {
+            return;
+        }
+
+        const referral =
+            data.referral || {};
+
+        if (referralCount) {
+            referralCount.textContent =
+                Number(
+                    referral.referral_count || 0
+                ).toLocaleString();
+        }
+
+        if (referralEarned) {
+            referralEarned.textContent =
+                `${Number(
+                    referral.referral_earned || 0
+                ).toLocaleString()} Zentra earned`;
+        }
+
+        if (telegramUser && referralLink) {
+
+            const botUsername =
+                "Zentra163bot";
+
+            referralLink.value =
+                `https://t.me/${botUsername}?startapp=ref_${telegramUser.id}`;
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Referral info error:",
+            error
+        );
+    }
+}
+
+
+// COPY REFERRAL LINK
+
+copyReferralButton?.addEventListener(
+    "click",
+    async () => {
+
+        if (!referralLink?.value) {
+            return;
+        }
+
+        try {
+
+            await navigator.clipboard.writeText(
+                referralLink.value
+            );
+
+            notify(
+                "Referral link copied! 🎁"
+            );
+
+        } catch {
+
+            referralLink.select();
+
+            document.execCommand("copy");
+
+            notify(
+                "Referral link copied! 🎁"
+            );
+        }
+    }
+);
+
+
+// SHARE REFERRAL LINK
+
+shareReferralButton?.addEventListener(
+    "click",
+    () => {
+
+        if (!referralLink?.value) {
+            return;
+        }
+
+        const text =
+            "Join Zentra and earn Zentra Tokens! 🎁";
+
+        const shareUrl =
+            `https://t.me/share/url?url=${encodeURIComponent(
+                referralLink.value
+            )}&text=${encodeURIComponent(
+                text
+            )}`;
+
+        if (tg?.openTelegramLink) {
+            tg.openTelegramLink(shareUrl);
+        } else {
+            window.open(
+                shareUrl,
+                "_blank"
+            );
+        }
+    }
+);
+
+
+// Referral card click
+
+document
+    .querySelector("#referral-card")
+    ?.addEventListener(
+        "click",
+        () => {
+
+            document
+                .querySelector("#referral-panel")
+                ?.scrollIntoView({
+                    behavior: "smooth"
+                });
+        }
+    );
+
+
+// Load referral information
+
+if (initData) {
+    loadReferralInfo();
+}
+
+
+
+// =================================
+// TELEGRAM REFERRAL START PARAM
+// =================================
+
+function getReferralCode() {
+
+    const startParam =
+        tg?.initDataUnsafe?.start_param || "";
+
+    if (
+        startParam &&
+        startParam.startsWith("ref_")
+    ) {
+        return startParam.substring(4);
+    }
+
+    return null;
+}
+
+
+async function processReferral() {
+
+    const referralCode =
+        getReferralCode();
+
+    if (!referralCode) {
+        return;
+    }
+
+    try {
+
+        const data =
+            await api(
+                "/api/referral/process",
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        referral_code:
+                            referralCode
+                    })
+                }
+            );
+
+        if (
+            data.success &&
+            data.reward
+        ) {
+            console.log(
+                `Referral successful: +${data.reward} Zentra`
+            );
+
+            await loadReferralInfo();
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Referral process error:",
+            error
+        );
+    }
+}
+
+
+// Process referral after Telegram auth is ready
+
+if (initData) {
+    processReferral();
+}
+
